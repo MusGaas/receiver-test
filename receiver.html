@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Receiver Loaded</h1>
+    <script>
+      window.addEventListener("message", (e) => {
+        alert("📥 Received from parent: " + JSON.stringify(e.data));
+      }, false);
+
+      // Try to send a message to the parent (spoofed)
+      window.parent.postMessage("👋 Hello from receiver", "*");
+    </script>
+  </body>
+</html>
