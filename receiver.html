@@ -5,18 +5,12 @@
     <script>
       window.addEventListener("message", (e) => {
         const data = e.data;
-        console.log("🔴 [postMessage] FULL PAYLOAD:", data);
-
-        const payload = JSON.stringify(data);
-        if (payload.length > 100000 && payload.includes("data:image/png;base64")) {
-          const match = payload.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-          if (match) {
-            const img = new Image();
-            img.src = match[0];
-            img.style.maxWidth = "300px";
-            document.body.appendChild(img);
-            console.log("✅ Screenshot image injected into DOM.");
-          }
+        try {
+          const size = JSON.stringify(data).length;
+          const keys = Object.keys(data || {}).join(", ");
+          console.log("🔸 Message received – size:", size, "| keys:", keys);
+        } catch (err) {
+          console.error("Error inspecting message:", err);
         }
       }, false);
     </script>
